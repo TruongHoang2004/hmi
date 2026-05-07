@@ -5,7 +5,7 @@ import { Server } from 'socket.io';
 
 import plcService from './services/plcService';
 import plcRoutes from './routes/plcRoutes';
-import plcSocket from './sockets/plcSocket';
+import initSocket from './sockets/plcSocket';
 
 const app = express();
 const PORT = 3001;
@@ -26,13 +26,14 @@ const io = new Server(server, {
   }
 });
 
-// Khởi tạo PLC Connection (truyền io vào để emit data)
+// Khởi tạo PLC Connection (truyền io để emit data real-time)
 plcService.init(io);
 
-// Khởi tạo Socket.IO Events
-plcSocket(io);
+// Khởi tạo Socket.IO event handlers
+initSocket(io);
 
 // Khởi chạy Server
 server.listen(PORT, () => {
-  console.log(`🚀 Backend Server (TypeScript) máy ấp trứng chạy tại: http://localhost:${PORT}`);
+  console.log(`🚀 Backend Server máy ấp trứng chạy tại: http://localhost:${PORT}`);
+  console.log(`📡 Socket.IO đang lắng nghe kết nối từ HMI...`);
 });
