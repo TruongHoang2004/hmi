@@ -38,7 +38,8 @@ function validateSettings(s: Settings): string | null {
 
 export default function Home() {
   const [plcData, setPlcData] = useState<Record<string, any>>({});
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);   // Socket ↔ Backend
+  const [plcConnected, setPlcConnected] = useState(false); // Backend ↔ PLC
   const [socket, setSocket] = useState<Socket | null>(null);
 
   // Settings form state
@@ -52,7 +53,11 @@ export default function Home() {
     setSocket(newSocket);
     newSocket.on("connect", () => setIsConnected(true));
     newSocket.on("disconnect", () => setIsConnected(false));
-    newSocket.on("plc-data", (data) => setPlcData(data || {}));
+    newSocket.on("plc-data", (data) => {
+      setPlcData(data || {});
+      // Backend cũng emit plc-data khi connected; nếu nhận được data thì PLC đang ok
+      setPlcConnected(data && Object.keys(data).length > 0);
+    });
     return () => { newSocket.close(); };
   }, []);
 
@@ -120,9 +125,15 @@ export default function Home() {
           </h1>
           <p className="text-neutral-500 mt-1 text-sm">Hệ thống giám sát và điều khiển tự động</p>
         </div>
-        <div className="flex items-center gap-3 bg-neutral-900 px-4 py-2 rounded-full border border-neutral-800">
-          <div className={`w-2.5 h-2.5 rounded-full transition-all ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-          <span className="text-sm font-medium">{isConnected ? "Server: Đã kết nối" : "Server: Mất kết nối"}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-neutral-900 px-4 py-2 rounded-full border border-neutral-800">
+            <div className={`w-2.5 h-2.5 rounded-full transition-all ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+            <span className="text-sm font-medium">{isConnected ? "Server: OK" : "Server: Mất kết nối"}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-neutral-900 px-4 py-2 rounded-full border border-neutral-800">
+            <div className={`w-2.5 h-2.5 rounded-full transition-all ${plcConnected ? "bg-emerald-500 animate-pulse" : "bg-yellow-500"}`} />
+            <span className="text-sm font-medium">{plcConnected ? "PLC: Kết nối" : "PLC: Chưa kết nối"}</span>
+          </div>
         </div>
       </header>
 
