@@ -24,25 +24,64 @@ body {
 
 /* ─── Animations ─── */
 @keyframes fan-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-@keyframes alarm-flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
-}
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.fan-spin { animation: fan-spin 0.5s linear infinite; transform-origin: center; }
-.pulse-glow { animation: pulse-glow 1.5s ease-in-out infinite; }
-.alarm-flash { animation: alarm-flash 0.7s ease-in-out infinite; }
-.slide-up { animation: slide-up 0.3s ease-out; }
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes alarm-flash {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fan-spin {
+  animation: fan-spin 2s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.alarm-flash {
+  animation: alarm-flash 0.7s ease-in-out infinite;
+}
+
+.slide-up {
+  animation: slide-up 0.3s ease-out;
+}
 
 /* ─── Glass Card ─── */
 .glass {
@@ -67,8 +106,12 @@ body {
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
+
 .io-field:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
 }
-.io-field-wide { width: 72px; }
+
+.io-field-wide {
+  width: 72px;
+}

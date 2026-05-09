@@ -95,7 +95,7 @@ class PlcService {
 
   private plcConfig = {
     port: 102,
-    host: '10.1.3.34',
+    host: '127.0.0.1',
     rack: 0,
     slot: 1, // S7-1200 = slot 1
   };

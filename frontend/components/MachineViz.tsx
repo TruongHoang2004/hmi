@@ -7,7 +7,7 @@ export default function MachineViz({ plc, onInvert }: {
   plc: Record<string, any>;
   onInvert: (tag: string) => void;
 }) {
-  const tilt = plc.DC_DaoTruoc ? -8 : plc.DC_DaoSau ? 8 : 0;
+  const tilt = plc.CB_Truoc ? -8 : plc.CB_Sau ? 8 : 0;
 
   return (
     <div className="glass p-6 relative">
