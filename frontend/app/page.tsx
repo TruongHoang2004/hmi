@@ -157,12 +157,176 @@ function MachineViz({ plc, onInvert }: {
 }
 
 // ============================================================
+// Warning Triangle SVG (reusable)
+// ============================================================
+function WarnTriangle({ size = 40, flashing }: { size?: number; flashing?: boolean }) {
+  return (
+    <svg width={size} height={size * 0.87} viewBox="0 0 50 45" className={flashing ? "alarm-blink" : ""}>
+      <polygon points="25,2 48,43 2,43" fill="#ff0" stroke="#333" strokeWidth="2" />
+      <text x="25" y="36" textAnchor="middle" fontSize="24" fontWeight="bold" fill="#333">!</text>
+    </svg>
+  );
+}
+
+// ============================================================
+// Screen_1: Warning / Alarm Screen
+// ============================================================
+function WarningScreen({ plc, writeTag, onNavigateMain }: {
+  plc: Record<string, any>;
+  writeTag: (tag: string, value: any) => void;
+  onNavigateMain: () => void;
+}) {
+  const momentary = (tag: string) => ({
+    onMouseDown: () => writeTag(tag, true),
+    onMouseUp: () => writeTag(tag, false),
+    onMouseLeave: () => writeTag(tag, false),
+    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); writeTag(tag, true); },
+    onTouchEnd: () => writeTag(tag, false),
+  });
+
+  return (
+    <div className="p-3 max-w-[950px] mx-auto space-y-3">
+      {/* Yellow WARNING banner */}
+      <div className="bg-[#ffff00] border border-[#9c9aa5] py-2 px-4">
+        <h2 className="text-[#ff0000] text-center font-bold text-3xl tracking-wider">WARNING</h2>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* ─── LEFT: Indicators + Dừng ─── */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Đèn báo lỗi */}
+          <div>
+            <span className="text-sm font-bold block mb-1">Đèn báo lỗi</span>
+            <div className={`w-14 h-14 rounded-full border border-[#9c9aa5] transition-all
+              ${plc.DenBaoLoi ? "bg-[#ffff00] shadow-[0_0_15px_#ff0] alarm-blink" : "bg-[#f1f1f2]"}`} />
+          </div>
+          {/* Còi báo lỗi */}
+          <div>
+            <span className="text-sm font-bold block mb-1">Còi báo lỗi</span>
+            <div className={`w-14 h-14 rounded-full border border-[#9c9aa5] transition-all
+              ${plc.CoiBaoLoi ? "bg-[#ffff00] shadow-[0_0_15px_#ff0] alarm-blink" : "bg-[#f1f1f2]"}`} />
+          </div>
+          {/* Dừng button */}
+          <button {...momentary("Dung")}
+            className="btn-3d px-5 py-2 bg-[#ff0000] text-[#31344a] font-bold text-sm rounded
+              border border-[#9c9aa5] shadow-[1px_1px_0_#999] select-none">
+            Dừng
+          </button>
+        </div>
+
+        {/* ─── CENTER: Machine with Warning Triangles ─── */}
+        <div className="lg:col-span-9">
+          <div className="relative flex items-center justify-center min-h-[320px]">
+            {/* Machine visualization (same SVG but static, for context) */}
+            <svg viewBox="0 0 480 340" className="w-full max-w-[550px]">
+              {/* Chamber body */}
+              <rect x="90" y="40" width="280" height="220" rx="2" fill="#e0e0e0" stroke="#333" strokeWidth="2" />
+              <polygon points="370,40 410,20 410,220 370,240" fill="#ccc" stroke="#333" strokeWidth="1.5" />
+              <polygon points="90,40 130,20 410,20 370,40" fill="#d8d8d8" stroke="#333" strokeWidth="1.5" />
+
+              {/* Heating coil */}
+              <path d="M120,60 Q150,48 180,60 Q210,72 240,60 Q270,48 300,60 Q330,72 350,60"
+                stroke="#999" strokeWidth="3" fill="none" />
+
+              {/* Fan placeholders */}
+              <circle cx="150" cy="90" r="14" fill="none" stroke="#888" strokeWidth="2" />
+              <circle cx="310" cy="90" r="14" fill="none" stroke="#888" strokeWidth="2" />
+
+              {/* Egg tray */}
+              <g transform="translate(230,165)">
+                <rect x="-100" y="-4" width="200" height="8" fill="#8B7355" stroke="#5a4a30" rx="2" />
+                {[-75, -45, -15, 15, 45, 75].map((x) => (
+                  <ellipse key={x} cx={x} cy={-14} rx="10" ry="12" fill="#F5DEB3" stroke="#d4c49a" strokeWidth="0.8" />
+                ))}
+              </g>
+
+              {/* Humidity nozzle */}
+              <rect x="215" y="211" width="30" height="8" fill="#999" rx="2" />
+
+              {/* Motors */}
+              <rect x="120" y="268" width="40" height="22" rx="2" fill="#333" stroke="#222" strokeWidth="1.5" />
+              <text x="140" y="283" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
+              <rect x="300" y="268" width="40" height="22" rx="2" fill="#333" stroke="#222" strokeWidth="1.5" />
+              <text x="320" y="283" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
+
+              {/* ⚠ Warning triangles at alarm locations */}
+              {/* CanhBaoND - near heating coil (top center) */}
+              {plc.CanhBaoND && (
+                <g transform="translate(200,30)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+
+              {/* CanhBaoTanNhiet - near left fan */}
+              {plc.CanhBaoTanNhiet && (
+                <g transform="translate(125,60)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+              {/* CanhBaoTanNhiet - also near right fan */}
+              {plc.CanhBaoTanNhiet && (
+                <g transform="translate(340,60)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+
+              {/* CanhBaoThongGio - near ventilation (left side) */}
+              {plc.CanhBaoThongGio && (
+                <g transform="translate(70,140)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+              {/* CanhBaoThongGio - right side too */}
+              {plc.CanhBaoThongGio && (
+                <g transform="translate(375,140)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+
+              {/* CanhBaoDA - near humidity (bottom center) */}
+              {plc.CanhBaoDA && (
+                <g transform="translate(215,230)">
+                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
+                    className="alarm-blink" />
+                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
+                </g>
+              )}
+            </svg>
+          </div>
+
+          {/* Màn hình chính button (bottom right) */}
+          <div className="flex justify-end mt-2">
+            <button onClick={onNavigateMain}
+              className="btn-3d px-6 py-3 bg-[#e9e8e8] text-[#31344a] font-bold text-sm rounded
+                border border-[#9c9aa5] shadow-[1px_1px_0_#aaa] select-none hover:bg-[#f5f4f4]">
+              Màn hình chính
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Home Page
 // ============================================================
 export default function Home() {
   const [plc, setPlc] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  // Screen navigation: 'main' = màn hình chính, 'warning' = Screen_1
+  const [screen, setScreen] = useState<'main' | 'warning'>('main');
 
   useEffect(() => {
     const s = io("http://localhost:3001");
@@ -190,17 +354,8 @@ export default function Home() {
     onTouchEnd: () => writeTag(tag, false),
   });
 
-  return (
-    <div className="min-h-screen bg-[#b6b6b6] text-[#31344a]">
-      {/* ══════ SIEMENS Header ══════ */}
-      <header className="bg-gradient-to-b from-[#003366] to-[#0a2540] h-12 flex items-center justify-between px-6 shadow-md">
-        <span className="text-white font-bold text-lg tracking-[0.2em]">SIEMENS</span>
-        <div className="flex items-center gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-green-400 shadow-[0_0_6px_#0f0]" : "bg-red-500"}`} />
-          <span className="text-white/70 text-sm font-semibold tracking-wide">SIMATIC HMI</span>
-        </div>
-      </header>
-
+  // ─── màn hình chính content ───
+  const mainContent = (
       <div className="p-3 max-w-[950px] mx-auto space-y-3">
 
         {/* ══════ Row 1: Timer + Sensor readings ══════ */}
@@ -380,36 +535,36 @@ export default function Home() {
         {/* ══════ Error Alarm Bar ══════ */}
         {plc.Loi && (
           <div className="flex items-center justify-center gap-4 pt-2">
-            {/* Warning icon */}
-            <div className="alarm-blink">
-              <svg width="50" height="45" viewBox="0 0 50 45">
-                <polygon points="25,2 48,43 2,43" fill="#ff0" stroke="#333" strokeWidth="2" />
-                <text x="25" y="36" textAnchor="middle" fontSize="24" fontWeight="bold" fill="#333">!</text>
-              </svg>
-            </div>
-            {/* Báo Lỗi button */}
-            <button
+            <WarnTriangle size={50} flashing />
+            {/* Báo Lỗi → ActivateScreen Screen_1 */}
+            <button onClick={() => setScreen('warning')}
               className="btn-3d px-12 py-3 bg-[#ffff00] text-[#31344a] font-bold text-2xl rounded
                 border-2 border-[#9c9aa5] shadow-[2px_2px_0_#666] select-none alarm-blink">
               Báo Lỗi
             </button>
           </div>
         )}
-
-        {/* ══════ Alarm detail badges ══════ */}
-        {(plc.CanhBaoND || plc.CanhBaoDA || plc.CanhBaoTanNhiet || plc.CanhBaoThongGio ||
-          plc.DenBaoLoi || plc.CoiBaoLoi || plc.Dung) && (
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            {plc.CanhBaoND && <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded alarm-blink">⚠ Cảnh báo Nhiệt độ</span>}
-            {plc.CanhBaoDA && <span className="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded alarm-blink">⚠ Cảnh báo Độ ẩm</span>}
-            {plc.CanhBaoTanNhiet && <span className="px-2 py-1 bg-yellow-600 text-white text-xs font-bold rounded alarm-blink">⚠ Lỗi Tản nhiệt</span>}
-            {plc.CanhBaoThongGio && <span className="px-2 py-1 bg-yellow-600 text-white text-xs font-bold rounded alarm-blink">⚠ Lỗi Thông gió</span>}
-            {plc.DenBaoLoi && <span className="px-2 py-1 bg-red-700 text-white text-xs font-bold rounded alarm-blink">💡 Đèn báo lỗi</span>}
-            {plc.CoiBaoLoi && <span className="px-2 py-1 bg-red-800 text-white text-xs font-bold rounded alarm-blink">🔊 Còi báo lỗi</span>}
-            {plc.Dung && <span className="px-2 py-1 bg-gray-700 text-white text-xs font-bold rounded">⏹ DỪNG</span>}
-          </div>
-        )}
       </div>
+    );
+
+  // ─── Screen_1: Warning Screen ───
+  const warningContent = (
+    <WarningScreen plc={plc} writeTag={writeTag} onNavigateMain={() => setScreen('main')} />
+  );
+
+  return (
+    <div className="min-h-screen bg-[#b6b6b6] text-[#31344a]">
+      {/* ══════ SIEMENS Header (shared across all screens) ══════ */}
+      <header className="bg-gradient-to-b from-[#003366] to-[#0a2540] h-12 flex items-center justify-between px-6 shadow-md">
+        <span className="text-white font-bold text-lg tracking-[0.2em]">SIEMENS</span>
+        <div className="flex items-center gap-3">
+          <div className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-green-400 shadow-[0_0_6px_#0f0]" : "bg-red-500"}`} />
+          <span className="text-white/70 text-sm font-semibold tracking-wide">SIMATIC HMI</span>
+        </div>
+      </header>
+
+      {/* Screen content */}
+      {screen === 'main' ? mainContent : warningContent}
     </div>
   );
 }
