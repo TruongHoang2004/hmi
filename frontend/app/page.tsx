@@ -14,7 +14,8 @@ export default function Home() {
   const [screen, setScreen] = useState<"main" | "warning">("main");
 
   useEffect(() => {
-    const s = io("http://localhost:3001");
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const s = io(backendUrl);
     setSocket(s);
     s.on("connect", () => setConnected(true));
     s.on("disconnect", () => setConnected(false));

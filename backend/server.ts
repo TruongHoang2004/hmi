@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
@@ -8,7 +9,7 @@ import plcRoutes from './routes/plcRoutes';
 import initSocket from './sockets/plcSocket';
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // --- MIDDLEWARE ---
 app.use(cors());

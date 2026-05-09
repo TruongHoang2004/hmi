@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import nodes7 from 'nodes7';
 import { PlcDataBlock, defaultPlcData, plcAddressMap } from '../config/plcVariables';
 import { Server } from 'socket.io';
@@ -94,10 +95,10 @@ class PlcService {
   private reconnectTimeout: any = null;
 
   private plcConfig = {
-    port: 102,
-    host: '127.0.0.1',
-    rack: 0,
-    slot: 1, // S7-1200 = slot 1
+    port: process.env.PLC_PORT ? parseInt(process.env.PLC_PORT, 10) : 102,
+    host: process.env.PLC_HOST || '10.1.3.34',
+    rack: process.env.PLC_RACK ? parseInt(process.env.PLC_RACK, 10) : 0,
+    slot: process.env.PLC_SLOT ? parseInt(process.env.PLC_SLOT, 10) : 1, // S7-1200 = slot 1
   };
 
   constructor() {
