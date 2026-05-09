@@ -37,7 +37,7 @@ export default function Home() {
   const header = (
     <header className="h-14 flex items-center justify-between px-6 border-b border-slate-800/80 bg-[#0d1117]/90 backdrop-blur-md sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
           <span className="text-white text-xs font-bold">HMI</span>
         </div>
         <div>
@@ -57,7 +57,7 @@ export default function Home() {
   // ─── Warning screen ───
   if (screen === "warning") {
     return (
-      <div className="min-h-screen bg-[#0a0e17]">
+      <div className="min-h-screen bg-background">
         {header}
         <WarningScreen plc={plc} writeTag={writeTag} onNavigateMain={() => setScreen("main")} />
       </div>
@@ -66,7 +66,7 @@ export default function Home() {
 
   // ─── Main screen ───
   return (
-    <div className="min-h-screen bg-[#0a0e17]">
+    <div className="min-h-screen bg-background">
       {header}
 
       <div className="p-4 md:p-6 max-w-[1100px] mx-auto space-y-5 slide-up">

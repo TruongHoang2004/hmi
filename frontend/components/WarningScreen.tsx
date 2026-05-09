@@ -23,7 +23,7 @@ export default function WarningScreen({ plc, writeTag, onNavigateMain }: {
   return (
     <div className="p-4 md:p-8 max-w-[1000px] mx-auto space-y-6 slide-up">
       {/* Warning banner */}
-      <div className="bg-gradient-to-r from-amber-600/20 via-amber-500/30 to-amber-600/20 border border-amber-500/40 rounded-2xl p-5 text-center">
+      <div className="bg-linear-to-r from-amber-600/20 via-amber-500/30 to-amber-600/20 border border-amber-500/40 rounded-2xl p-5 text-center">
         <div className="flex items-center justify-center gap-3">
           <WarnTriangle size={36} className="alarm-flash" />
           <h2 className="text-amber-400 font-bold text-2xl tracking-widest">WARNING</h2>
@@ -98,7 +98,7 @@ export default function WarningScreen({ plc, writeTag, onNavigateMain }: {
               <circle cx="310" cy="90" r="14" fill="none" stroke="#475569" strokeWidth="2" />
               <g transform="translate(230,165)">
                 <rect x="-100" y="-4" width="200" height="8" fill="#92400e" stroke="#78350f" rx="3" />
-                {[-75,-45,-15,15,45,75].map(x => <ellipse key={x} cx={x} cy={-14} rx="10" ry="12" fill="#fbbf24" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />)}
+                {[-75, -45, -15, 15, 45, 75].map(x => <ellipse key={x} cx={x} cy={-14} rx="10" ry="12" fill="#fbbf24" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />)}
               </g>
               <rect x="215" y="211" width="30" height="8" fill="#475569" rx="3" />
               <rect x="120" y="248" width="40" height="22" rx="4" fill="#334155" stroke="#475569" />
