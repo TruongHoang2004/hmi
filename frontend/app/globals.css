@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #b6b6b6;
+  --foreground: #31344a;
 }
 
 @theme inline {
@@ -12,15 +12,64 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Tahoma, Arial, Helvetica, sans-serif;
+}
+
+/* Fan spin animation */
+@keyframes fan-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.fan-spinning {
+  animation: fan-spin 0.4s linear infinite;
+  transform-origin: center;
+}
+
+/* Heating glow */
+@keyframes heat-glow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.heat-active {
+  animation: heat-glow 1s ease-in-out infinite;
+}
+
+/* Alarm blink */
+@keyframes alarm-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.alarm-blink {
+  animation: alarm-blink 0.6s ease-in-out infinite;
+}
+
+/* I/O Field styling */
+.io-field {
+  width: 56px;
+  height: 34px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  font-family: Tahoma, sans-serif;
+  background: #fff;
+  color: #31344a;
+  border: 3px double #474957;
+  border-radius: 3px;
+  outline: none;
+}
+.io-field:focus {
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.3);
+}
+
+/* 3D button press effect */
+.btn-3d {
+  transition: all 0.05s;
+}
+.btn-3d:active {
+  box-shadow: none !important;
+  transform: translate(1px, 1px);
 }
