@@ -2,331 +2,16 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import IOField from "@/components/IOField";
+import MachineViz from "@/components/MachineViz";
+import WarningScreen from "@/components/WarningScreen";
+import { useMomentary, StatusDot, WarnTriangle } from "@/components/shared";
 
-// ============================================================
-// I/O Field component - Mimics TIA Portal Input/Output field
-// Shows PLC value, allows direct editing, writes on Enter/blur
-// ============================================================
-function IOField({ tag, value, onWrite, wide }: {
-  tag: string; value: number;
-  onWrite: (tag: string, val: number) => void;
-  wide?: boolean;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [local, setLocal] = useState("");
-  const display = editing ? local : String(value ?? 0).padStart(2, "0");
-
-  return (
-    <input
-      type="text" inputMode="numeric"
-      value={display}
-      className={`io-field ${wide ? "!w-[65px]" : ""}`}
-      onFocus={() => { setEditing(true); setLocal(String(value ?? 0)); }}
-      onChange={(e) => setLocal(e.target.value)}
-      onBlur={() => {
-        setEditing(false);
-        const n = parseInt(local);
-        if (!isNaN(n)) onWrite(tag, n);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setEditing(false);
-      }}
-    />
-  );
-}
-
-// ============================================================
-// Machine Visualization SVG - Egg incubator schematic
-// ============================================================
-function MachineViz({ plc, onInvert }: {
-  plc: Record<string, any>;
-  onInvert: (tag: string) => void;
-}) {
-  const tilt = plc.DC_DaoTruoc ? -8 : plc.DC_DaoSau ? 8 : 0;
-
-  return (
-    <svg viewBox="0 0 480 300" className="w-full max-w-[550px]">
-      {/* Chamber body - 3D box */}
-      <rect x="90" y="40" width="280" height="200" rx="2"
-        fill="#e0e0e0" stroke="#333" strokeWidth="2" />
-      <polygon points="370,40 410,20 410,220 370,240"
-        fill="#ccc" stroke="#333" strokeWidth="1.5" />
-      <polygon points="90,40 130,20 410,20 370,40"
-        fill="#d8d8d8" stroke="#333" strokeWidth="1.5" />
-
-      {/* Heating coil at top */}
-      <path
-        d="M120,60 Q150,48 180,60 Q210,72 240,60 Q270,48 300,60 Q330,72 350,60"
-        stroke={plc.GiaNhiet ? "#ff5224" : "#999"}
-        strokeWidth="3" fill="none"
-        className={plc.GiaNhiet ? "heat-active" : ""}
-      />
-
-      {/* Fan - QuatTanNhiet (top-left inside chamber) */}
-      <g transform="translate(150,90)">
-        <circle r="14" fill="none" stroke={plc.QuatTanNhiet ? "#0c0" : "#888"} strokeWidth="2" />
-        <g className={plc.QuatTanNhiet ? "fan-spinning" : ""}>
-          <line x1="0" y1="-10" x2="0" y2="10" stroke={plc.QuatTanNhiet ? "#0c0" : "#888"} strokeWidth="2.5" />
-          <line x1="-10" y1="0" x2="10" y2="0" stroke={plc.QuatTanNhiet ? "#0c0" : "#888"} strokeWidth="2.5" />
-        </g>
-      </g>
-
-      {/* Fan - QuatThongGio (top-right inside chamber) */}
-      <g transform="translate(310,90)">
-        <circle r="14" fill="none" stroke={plc.QuatThongGio ? "#0c0" : "#888"} strokeWidth="2" />
-        <g className={plc.QuatThongGio ? "fan-spinning" : ""}>
-          <line x1="-8" y1="-8" x2="8" y2="8" stroke={plc.QuatThongGio ? "#0c0" : "#888"} strokeWidth="2.5" />
-          <line x1="8" y1="-8" x2="-8" y2="8" stroke={plc.QuatThongGio ? "#0c0" : "#888"} strokeWidth="2.5" />
-        </g>
-      </g>
-
-      {/* đk control dots (red circles near components) */}
-      {/* đk nhiệt - near heating */}
-      <circle cx="190" cy="55" r="5" fill={plc.DkNhiet ? "red" : "transparent"}
-        stroke={plc.DkNhiet ? "red" : "none"} cursor="pointer"
-        onClick={() => onInvert("DkNhiet")} />
-      {/* đk tản nhiệt - near fan left */}
-      <circle cx="300" cy="75" r="5" fill={plc.DkTanNhiet ? "red" : "transparent"}
-        stroke={plc.DkTanNhiet ? "red" : "none"} cursor="pointer"
-        onClick={() => onInvert("DkTanNhiet")} />
-      {/* đk gió - near fan right */}
-      <circle cx="345" cy="90" r="5" fill={plc.DkGio ? "red" : "transparent"}
-        stroke={plc.DkGio ? "red" : "none"} cursor="pointer"
-        onClick={() => onInvert("DkGio")} />
-
-      {/* Egg tray - tilts based on motor direction */}
-      <g transform={`translate(230,165) rotate(${tilt})`}>
-        {/* Tray platform */}
-        <rect x="-100" y="-4" width="200" height="8" fill="#8B7355" stroke="#5a4a30" rx="2" />
-        {/* Tray grid lines */}
-        <line x1="-90" y1="-4" x2="-90" y2="4" stroke="#6a5a3a" />
-        <line x1="-60" y1="-4" x2="-60" y2="4" stroke="#6a5a3a" />
-        <line x1="-30" y1="-4" x2="-30" y2="4" stroke="#6a5a3a" />
-        <line x1="0" y1="-4" x2="0" y2="4" stroke="#6a5a3a" />
-        <line x1="30" y1="-4" x2="30" y2="4" stroke="#6a5a3a" />
-        <line x1="60" y1="-4" x2="60" y2="4" stroke="#6a5a3a" />
-        <line x1="90" y1="-4" x2="90" y2="4" stroke="#6a5a3a" />
-        {/* Eggs row 1 */}
-        {[-75, -45, -15, 15, 45, 75].map((x) => (
-          <ellipse key={x} cx={x} cy={-14} rx="10" ry="12" fill="#F5DEB3" stroke="#d4c49a" strokeWidth="0.8" />
-        ))}
-        {/* Eggs row 2 */}
-        {[-60, -30, 0, 30, 60].map((x) => (
-          <ellipse key={x} cx={x} cy={-30} rx="10" ry="12" fill="#f0d8a8" stroke="#d4c49a" strokeWidth="0.8" />
-        ))}
-      </g>
-
-      {/* Humidity nozzle at bottom */}
-      <g transform="translate(230,215)">
-        <rect x="-15" y="-4" width="30" height="8" fill={plc.TaoAm ? "#4af" : "#999"} rx="2" />
-        {plc.TaoAm && <>
-          <circle cx="-5" cy="12" r="2" fill="#4af" opacity="0.7" />
-          <circle cx="5" cy="15" r="1.5" fill="#4af" opacity="0.5" />
-          <circle cx="0" cy="18" r="2" fill="#4af" opacity="0.6" />
-        </>}
-      </g>
-      {/* đk ẩm dot */}
-      <circle cx="270" cy="220" r="5" fill={plc.DkAm ? "red" : "transparent"}
-        stroke={plc.DkAm ? "red" : "none"} cursor="pointer"
-        onClick={() => onInvert("DkAm")} />
-
-      {/* Motor left - DC_DaoTruoc */}
-      <rect x="120" y="248" width="40" height="22" rx="2"
-        fill={plc.DC_DaoTruoc ? "#0c0" : "#333"} stroke="#222" strokeWidth="1.5" />
-      <text x="140" y="263" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
-
-      {/* Motor right - DC_DaoSau */}
-      <rect x="300" y="248" width="40" height="22" rx="2"
-        fill={plc.DC_DaoSau ? "#0c0" : "#333"} stroke="#222" strokeWidth="1.5" />
-      <text x="320" y="263" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
-
-      {/* CB limit switch indicators */}
-      <g transform="translate(115,200)">
-        <rect x="-8" y="-5" width="16" height="10" fill={plc.CB_Truoc ? "#0f0" : "#999"} stroke="#333" rx="2" />
-      </g>
-      <g transform="translate(345,200)">
-        <rect x="-8" y="-5" width="16" height="10" fill={plc.CB_Sau ? "#0f0" : "#999"} stroke="#333" rx="2" />
-      </g>
-
-      {/* Connection lines: motor to tray */}
-      <line x1="140" y1="248" x2="155" y2="173" stroke="#555" strokeWidth="1.5" strokeDasharray="4,2" />
-      <line x1="320" y1="248" x2="305" y2="173" stroke="#555" strokeWidth="1.5" strokeDasharray="4,2" />
-    </svg>
-  );
-}
-
-// ============================================================
-// Warning Triangle SVG (reusable)
-// ============================================================
-function WarnTriangle({ size = 40, flashing }: { size?: number; flashing?: boolean }) {
-  return (
-    <svg width={size} height={size * 0.87} viewBox="0 0 50 45" className={flashing ? "alarm-blink" : ""}>
-      <polygon points="25,2 48,43 2,43" fill="#ff0" stroke="#333" strokeWidth="2" />
-      <text x="25" y="36" textAnchor="middle" fontSize="24" fontWeight="bold" fill="#333">!</text>
-    </svg>
-  );
-}
-
-// ============================================================
-// Screen_1: Warning / Alarm Screen
-// ============================================================
-function WarningScreen({ plc, writeTag, onNavigateMain }: {
-  plc: Record<string, any>;
-  writeTag: (tag: string, value: any) => void;
-  onNavigateMain: () => void;
-}) {
-  const momentary = (tag: string) => ({
-    onMouseDown: () => writeTag(tag, true),
-    onMouseUp: () => writeTag(tag, false),
-    onMouseLeave: () => writeTag(tag, false),
-    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); writeTag(tag, true); },
-    onTouchEnd: () => writeTag(tag, false),
-  });
-
-  return (
-    <div className="p-3 max-w-[950px] mx-auto space-y-3">
-      {/* Yellow WARNING banner */}
-      <div className="bg-[#ffff00] border border-[#9c9aa5] py-2 px-4">
-        <h2 className="text-[#ff0000] text-center font-bold text-3xl tracking-wider">WARNING</h2>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* ─── LEFT: Indicators + Dừng ─── */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Đèn báo lỗi */}
-          <div>
-            <span className="text-sm font-bold block mb-1">Đèn báo lỗi</span>
-            <div className={`w-14 h-14 rounded-full border border-[#9c9aa5] transition-all
-              ${plc.DenBaoLoi ? "bg-[#ffff00] shadow-[0_0_15px_#ff0] alarm-blink" : "bg-[#f1f1f2]"}`} />
-          </div>
-          {/* Còi báo lỗi */}
-          <div>
-            <span className="text-sm font-bold block mb-1">Còi báo lỗi</span>
-            <div className={`w-14 h-14 rounded-full border border-[#9c9aa5] transition-all
-              ${plc.CoiBaoLoi ? "bg-[#ffff00] shadow-[0_0_15px_#ff0] alarm-blink" : "bg-[#f1f1f2]"}`} />
-          </div>
-          {/* Dừng button */}
-          <button {...momentary("Dung")}
-            className="btn-3d px-5 py-2 bg-[#ff0000] text-[#31344a] font-bold text-sm rounded
-              border border-[#9c9aa5] shadow-[1px_1px_0_#999] select-none">
-            Dừng
-          </button>
-        </div>
-
-        {/* ─── CENTER: Machine with Warning Triangles ─── */}
-        <div className="lg:col-span-9">
-          <div className="relative flex items-center justify-center min-h-[320px]">
-            {/* Machine visualization (same SVG but static, for context) */}
-            <svg viewBox="0 0 480 340" className="w-full max-w-[550px]">
-              {/* Chamber body */}
-              <rect x="90" y="40" width="280" height="220" rx="2" fill="#e0e0e0" stroke="#333" strokeWidth="2" />
-              <polygon points="370,40 410,20 410,220 370,240" fill="#ccc" stroke="#333" strokeWidth="1.5" />
-              <polygon points="90,40 130,20 410,20 370,40" fill="#d8d8d8" stroke="#333" strokeWidth="1.5" />
-
-              {/* Heating coil */}
-              <path d="M120,60 Q150,48 180,60 Q210,72 240,60 Q270,48 300,60 Q330,72 350,60"
-                stroke="#999" strokeWidth="3" fill="none" />
-
-              {/* Fan placeholders */}
-              <circle cx="150" cy="90" r="14" fill="none" stroke="#888" strokeWidth="2" />
-              <circle cx="310" cy="90" r="14" fill="none" stroke="#888" strokeWidth="2" />
-
-              {/* Egg tray */}
-              <g transform="translate(230,165)">
-                <rect x="-100" y="-4" width="200" height="8" fill="#8B7355" stroke="#5a4a30" rx="2" />
-                {[-75, -45, -15, 15, 45, 75].map((x) => (
-                  <ellipse key={x} cx={x} cy={-14} rx="10" ry="12" fill="#F5DEB3" stroke="#d4c49a" strokeWidth="0.8" />
-                ))}
-              </g>
-
-              {/* Humidity nozzle */}
-              <rect x="215" y="211" width="30" height="8" fill="#999" rx="2" />
-
-              {/* Motors */}
-              <rect x="120" y="268" width="40" height="22" rx="2" fill="#333" stroke="#222" strokeWidth="1.5" />
-              <text x="140" y="283" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
-              <rect x="300" y="268" width="40" height="22" rx="2" fill="#333" stroke="#222" strokeWidth="1.5" />
-              <text x="320" y="283" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">M</text>
-
-              {/* ⚠ Warning triangles at alarm locations */}
-              {/* CanhBaoND - near heating coil (top center) */}
-              {plc.CanhBaoND && (
-                <g transform="translate(200,30)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-
-              {/* CanhBaoTanNhiet - near left fan */}
-              {plc.CanhBaoTanNhiet && (
-                <g transform="translate(125,60)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-              {/* CanhBaoTanNhiet - also near right fan */}
-              {plc.CanhBaoTanNhiet && (
-                <g transform="translate(340,60)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-
-              {/* CanhBaoThongGio - near ventilation (left side) */}
-              {plc.CanhBaoThongGio && (
-                <g transform="translate(70,140)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-              {/* CanhBaoThongGio - right side too */}
-              {plc.CanhBaoThongGio && (
-                <g transform="translate(375,140)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-
-              {/* CanhBaoDA - near humidity (bottom center) */}
-              {plc.CanhBaoDA && (
-                <g transform="translate(215,230)">
-                  <polygon points="15,0 30,26 0,26" fill="#ff0" stroke="#333" strokeWidth="1.5"
-                    className="alarm-blink" />
-                  <text x="15" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#333">!</text>
-                </g>
-              )}
-            </svg>
-          </div>
-
-          {/* Màn hình chính button (bottom right) */}
-          <div className="flex justify-end mt-2">
-            <button onClick={onNavigateMain}
-              className="btn-3d px-6 py-3 bg-[#e9e8e8] text-[#31344a] font-bold text-sm rounded
-                border border-[#9c9aa5] shadow-[1px_1px_0_#aaa] select-none hover:bg-[#f5f4f4]">
-              Màn hình chính
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// Main Home Page
-// ============================================================
 export default function Home() {
   const [plc, setPlc] = useState<Record<string, any>>({});
   const [connected, setConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
-  // Screen navigation: 'main' = màn hình chính, 'warning' = Screen_1
-  const [screen, setScreen] = useState<'main' | 'warning'>('main');
+  const [screen, setScreen] = useState<"main" | "warning">("main");
 
   useEffect(() => {
     const s = io("http://localhost:3001");
@@ -345,226 +30,228 @@ export default function Home() {
     writeTag(tag, !plc[tag]);
   }, [writeTag, plc]);
 
-  // Momentary button: SetBit on press, ResetBit on release (matches TIA Portal behavior)
-  const momentary = (tag: string) => ({
-    onMouseDown: () => writeTag(tag, true),
-    onMouseUp: () => writeTag(tag, false),
-    onMouseLeave: () => writeTag(tag, false),
-    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); writeTag(tag, true); },
-    onTouchEnd: () => writeTag(tag, false),
-  });
+  const momentary = useMomentary(writeTag);
 
-  // ─── màn hình chính content ───
-  const mainContent = (
-      <div className="p-3 max-w-[950px] mx-auto space-y-3">
+  // ─── Header (shared) ───
+  const header = (
+    <header className="h-14 flex items-center justify-between px-6 border-b border-slate-800/80 bg-[#0d1117]/90 backdrop-blur-md sticky top-0 z-50">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+          <span className="text-white text-xs font-bold">HMI</span>
+        </div>
+        <div>
+          <span className="text-white font-semibold text-sm">Máy Ấp Trứng</span>
+          <span className="text-slate-500 text-xs block -mt-0.5">Hệ thống giám sát & điều khiển</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/60 border border-slate-700/50">
+          <StatusDot active={connected} />
+          <span className="text-xs font-medium text-slate-400">{connected ? "Online" : "Offline"}</span>
+        </div>
+      </div>
+    </header>
+  );
 
-        {/* ══════ Row 1: Timer + Sensor readings ══════ */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-between">
-          {/* Timer display */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <IOField tag="Ngay" value={plc.Ngay} onWrite={writeTag} />
-            <span className="text-sm font-bold">ngày</span>
-            <IOField tag="Gio" value={plc.Gio} onWrite={writeTag} />
-            <span className="text-sm font-bold">giờ</span>
-            <IOField tag="Phut" value={plc.Phut} onWrite={writeTag} />
-            <span className="text-sm font-bold">phút</span>
-            <IOField tag="Giay" value={plc.Giay} onWrite={writeTag} />
-            <span className="text-sm font-bold">giây</span>
+  // ─── Warning screen ───
+  if (screen === "warning") {
+    return (
+      <div className="min-h-screen bg-[#0a0e17]">
+        {header}
+        <WarningScreen plc={plc} writeTag={writeTag} onNavigateMain={() => setScreen("main")} />
+      </div>
+    );
+  }
+
+  // ─── Main screen ───
+  return (
+    <div className="min-h-screen bg-[#0a0e17]">
+      {header}
+
+      <div className="p-4 md:p-6 max-w-[1100px] mx-auto space-y-5 slide-up">
+
+        {/* ══════ Row 1: Timer + Sensor Readings ══════ */}
+        <div className="flex flex-wrap items-center gap-4 justify-between">
+          {/* Timer */}
+          <div className="glass px-5 py-3 flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider mr-1">Timer</span>
+            {[
+              { tag: "Ngay", unit: "ngày" },
+              { tag: "Gio", unit: "giờ" },
+              { tag: "Phut", unit: "phút" },
+              { tag: "Giay", unit: "giây" },
+            ].map(t => (
+              <div key={t.tag} className="flex items-center gap-1">
+                <IOField tag={t.tag} value={plc[t.tag]} onWrite={writeTag} />
+                <span className="text-xs text-slate-500 font-medium">{t.unit}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Current sensor values */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">Nhiệt độ</span>
-            <IOField tag="HT_ND" value={plc.HT_ND} onWrite={writeTag} />
-            <IOField tag="HT_DA" value={plc.HT_DA} onWrite={writeTag} />
-            <span className="text-sm font-bold">Độ ẩm</span>
+          {/* Sensor cards */}
+          <div className="flex items-center gap-3">
+            <div className="glass px-5 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
+                <span className="text-orange-400 text-sm">🌡</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Nhiệt độ</span>
+                <div className="flex items-baseline gap-1">
+                  <IOField tag="HT_ND" value={plc.HT_ND} onWrite={writeTag} />
+                  <span className="text-xs text-slate-500">°C</span>
+                </div>
+              </div>
+            </div>
+            <div className="glass px-5 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
+                <span className="text-sky-400 text-sm">💧</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Độ ẩm</span>
+                <div className="flex items-baseline gap-1">
+                  <IOField tag="HT_DA" value={plc.HT_DA} onWrite={writeTag} />
+                  <span className="text-xs text-slate-500">%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ══════ Main Content: Left Panel + Machine ══════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        {/* ══════ Main Grid ══════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-          {/* ──── LEFT: Settings + Controls ──── */}
-          <div className="lg:col-span-4 flex flex-col">
-
-            {/* Settings Panel (gray) */}
-            <div className="bg-[#c0c0c0] border border-[#181c31] p-4">
-              <div className="flex items-center mb-3">
-                <h2 className="font-bold text-base">Cài đặt</h2>
-                {/* Running indicator (KhoiDong) */}
-                <div className={`w-5 h-5 rounded-full border border-[#9c9aa5] ml-auto transition-colors
-                  ${plc.KhoiDong ? "bg-[#00ff00]" : "bg-[#f1f1f2]"}`}
-                  title={plc.KhoiDong ? "Đang chạy" : "Đã dừng"} />
+          {/* ── LEFT: Settings + Controls ── */}
+          <div className="lg:col-span-4 space-y-5">
+            {/* Settings */}
+            <div className="glass p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Cài Đặt</h3>
+                <StatusDot active={!!plc.KhoiDong} size="w-3 h-3" />
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {[
                   { label: "Số ngày ấp", tag: "SetNgayAp", unit: "ngày" },
-                  { label: "Nhiệt độ ấp", tag: "Set_ND", unit: "Độ C" },
+                  { label: "Nhiệt độ ấp", tag: "Set_ND", unit: "°C" },
                   { label: "Độ ẩm ấp", tag: "Set_DA", unit: "%" },
-                  { label: "Time đảo trứng", tag: "SetTimeDao", unit: "Giờ" },
-                ].map((f) => (
-                  <div key={f.tag} className="flex items-center gap-2">
-                    <span className="text-sm font-bold w-[125px] shrink-0">{f.label}</span>
-                    <IOField tag={f.tag} value={plc[f.tag]} onWrite={writeTag} wide />
-                    <span className="text-sm font-bold">{f.unit}</span>
+                  { label: "Thời gian đảo", tag: "SetTimeDao", unit: "Giờ" },
+                ].map(f => (
+                  <div key={f.tag} className="flex items-center justify-between">
+                    <span className="text-sm text-slate-400">{f.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <IOField tag={f.tag} value={plc[f.tag]} onWrite={writeTag} wide />
+                      <span className="text-xs text-slate-500 w-8">{f.unit}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Controls Panel (light blue) */}
-            <div className="bg-[#99ccff] border border-black p-4 space-y-3">
-              {/* Auto/Test mode indicators */}
+            {/* Controls */}
+            <div className="glass p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Điều Khiển</h3>
+
+              {/* Auto/Test */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-4">
-                  {/* Auto indicator */}
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={`w-8 h-8 rounded-full border border-[#181c31] transition-colors
-                      ${!plc.Auto_Test ? "bg-[#00ff00]" : "bg-[#d9d9d9]"}`} />
-                    <span className="text-xs font-bold">Auto</span>
-                  </div>
-                  {/* Test indicator */}
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={`w-8 h-8 rounded-full border border-[#181c31] transition-colors
-                      ${plc.Auto_Test ? "bg-[#00ff00]" : "bg-[#d9d9d9]"}`} />
-                    <span className="text-xs font-bold">Test</span>
-                  </div>
+                <div className="flex items-center gap-2 flex-1">
+                  <div className={`w-3 h-3 rounded-full transition-all ${!plc.Auto_Test ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-700"}`} />
+                  <span className={`text-xs font-semibold ${!plc.Auto_Test ? "text-emerald-400" : "text-slate-500"}`}>Auto</span>
                 </div>
-
-                {/* START button */}
-                <button {...momentary("ON")}
-                  className="btn-3d ml-auto px-5 py-2 bg-[#00ff00] text-white font-bold text-sm rounded
-                    border-2 border-[#474957] shadow-[2px_2px_0_#333] select-none">
-                  START
-                </button>
-              </div>
-
-              {/* chọn / test / STOP / Reset */}
-              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className={`w-3 h-3 rounded-full transition-all ${plc.Auto_Test ? "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]" : "bg-slate-700"}`} />
+                  <span className={`text-xs font-semibold ${plc.Auto_Test ? "text-sky-400" : "text-slate-500"}`}>Test</span>
+                </div>
                 <button onClick={() => invertTag("Auto_Test")}
-                  className="btn-3d px-3 py-1.5 bg-[#636171] text-white font-bold text-sm rounded
-                    border-2 border-[#474957] hover:bg-[#7a7a8a] select-none">
-                  chọn
+                  className="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all active:scale-95 text-slate-300">
+                  Chọn
                 </button>
                 <button {...momentary("Test")}
-                  className="btn-3d px-3 py-1.5 bg-[#636171] text-white font-bold text-sm rounded
-                    border-2 border-[#474957] hover:bg-[#7a7a8a] select-none">
-                  test
-                </button>
-
-                {/* STOP button */}
-                <button {...momentary("OFF")}
-                  className="btn-3d ml-auto px-5 py-2 bg-[#ff0000] text-white font-bold text-sm rounded
-                    border-2 border-[#474957] shadow-[2px_2px_0_#333] select-none">
-                  STOP
+                  className="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all active:scale-95 text-slate-300 select-none">
+                  Test
                 </button>
               </div>
 
-              {/* Reset button */}
-              <div>
+              {/* START / STOP */}
+              <div className="grid grid-cols-2 gap-3">
+                <button {...momentary("ON")}
+                  className="py-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 font-bold text-sm rounded-xl
+                    transition-all active:scale-95 select-none shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                  ▶ START
+                </button>
+                <button {...momentary("OFF")}
+                  className="py-3 bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-400 font-bold text-sm rounded-xl
+                    transition-all active:scale-95 select-none">
+                  ■ STOP
+                </button>
+              </div>
+
+              {/* Reset + CB */}
+              <div className="flex gap-2">
                 <button {...momentary("Reset")}
-                  className="btn-3d px-4 py-1.5 bg-[#ffff99] text-[#31344a] font-bold text-sm rounded
-                    border border-[#c0c0c0] shadow-[1px_1px_0_#999] select-none">
+                  className="flex-1 py-2 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg
+                    transition-all active:scale-95 select-none">
                   Reset
                 </button>
+                <button onClick={() => invertTag("CB_Truoc")}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all active:scale-95
+                    ${plc.CB_Truoc ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800 border-slate-700 text-slate-400"}`}>
+                  CB 1
+                </button>
+                <button onClick={() => invertTag("CB_Sau")}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all active:scale-95
+                    ${plc.CB_Sau ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800 border-slate-700 text-slate-400"}`}>
+                  CB 2
+                </button>
               </div>
 
-              {/* NgatTuDong indicator */}
+              {/* NgatTuDong */}
               {plc.NgatTuDong && (
-                <div className="text-xs font-bold text-red-700 bg-yellow-200 px-2 py-1 rounded text-center">
+                <div className="text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-lg text-center alarm-flash">
                   ⚠ Đã ngắt tự động
                 </div>
               )}
             </div>
+
+            {/* Runtime stats */}
+            <div className="glass p-5">
+              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Thống Kê</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Số lần đảo", val: plc.SoLanDaoTrung ?? 0, unit: "lần" },
+                  { label: "Trạng thái", val: plc.KhoiDong ? "Chạy" : "Dừng", color: plc.KhoiDong ? "text-emerald-400" : "text-slate-500" },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-800/50 rounded-lg p-3 text-center">
+                    <div className={`text-lg font-semibold ${(s as any).color ?? "text-white"}`}>{s.val} {s.unit && <span className="text-xs text-slate-500">{s.unit}</span>}</div>
+                    <div className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* ──── RIGHT: Machine Visualization ──── */}
-          <div className="lg:col-span-8 flex flex-col gap-3">
-
-            {/* Machine SVG + CB buttons */}
-            <div className="relative flex items-center justify-center min-h-[280px]">
-              {/* CB 1 button (left) */}
-              <button onClick={() => invertTag("CB_Truoc")}
-                className={`btn-3d absolute left-0 top-1/2 -translate-y-1/2 z-10
-                  px-3 py-1.5 font-bold text-sm text-white rounded
-                  border-2 border-[#474957] select-none
-                  ${plc.CB_Truoc ? "bg-[#00ff00] text-[#31344a]" : "bg-[#636171]"}`}>
-                CB 1
-              </button>
-
-              {/* Machine diagram */}
-              <MachineViz plc={plc} onInvert={invertTag} />
-
-              {/* CB 2 button (right) */}
-              <button onClick={() => invertTag("CB_Sau")}
-                className={`btn-3d absolute right-0 top-1/2 -translate-y-1/2 z-10
-                  px-3 py-1.5 font-bold text-sm text-white rounded
-                  border-2 border-[#474957] select-none
-                  ${plc.CB_Sau ? "bg-[#00ff00] text-[#31344a]" : "bg-[#636171]"}`}>
-                CB 2
-              </button>
-            </div>
-
-            {/* Actuator status circles */}
-            <div className="flex items-center justify-around flex-wrap gap-2">
-              {[
-                { key: "GiaNhiet", label: "Gia nhiệt" },
-                { key: "TaoAm", label: "Tạo ẩm" },
-                { key: "QuatTanNhiet", label: "Tản nhiệt" },
-                { key: "QuatThongGio", label: "Thông gió" },
-              ].map((a) => (
-                <div key={a.key} className="flex items-center gap-2">
-                  <div className={`w-9 h-9 rounded-full border border-[#181c31] transition-colors
-                    ${plc[a.key] ? "bg-[#00ff00]" : "bg-[#d9d9d9]"}`} />
-                  <span className="text-sm font-bold">{a.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Số lần đảo trứng */}
-            <div className="flex items-center gap-2 justify-center text-sm">
-              <span className="font-bold">Số lần đảo trứng:</span>
-              <span className="io-field inline-flex items-center justify-center !border-none !bg-transparent font-bold text-base">
-                {plc.SoLanDaoTrung ?? 0}
-              </span>
-              <span className="font-bold">lần</span>
-            </div>
+          {/* ── RIGHT: Machine Viz ── */}
+          <div className="lg:col-span-8">
+            <MachineViz plc={plc} onInvert={invertTag} />
           </div>
         </div>
 
-        {/* ══════ Error Alarm Bar ══════ */}
+        {/* ══════ Error Alarm ══════ */}
         {plc.Loi && (
-          <div className="flex items-center justify-center gap-4 pt-2">
-            <WarnTriangle size={50} flashing />
-            {/* Báo Lỗi → ActivateScreen Screen_1 */}
-            <button onClick={() => setScreen('warning')}
-              className="btn-3d px-12 py-3 bg-[#ffff00] text-[#31344a] font-bold text-2xl rounded
-                border-2 border-[#9c9aa5] shadow-[2px_2px_0_#666] select-none alarm-blink">
-              Báo Lỗi
+          <div className="glass p-4 flex items-center justify-between border-amber-500/30 bg-amber-500/5 slide-up">
+            <div className="flex items-center gap-3">
+              <WarnTriangle size={36} className="alarm-flash" />
+              <div>
+                <span className="text-amber-400 font-bold text-sm">Phát hiện lỗi hệ thống</span>
+                <span className="text-slate-500 text-xs block">Nhấn để xem chi tiết cảnh báo</span>
+              </div>
+            </div>
+            <button onClick={() => setScreen("warning")}
+              className="px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-400 font-bold text-sm rounded-xl
+                transition-all active:scale-95 alarm-flash">
+              Báo Lỗi →
             </button>
           </div>
         )}
       </div>
-    );
-
-  // ─── Screen_1: Warning Screen ───
-  const warningContent = (
-    <WarningScreen plc={plc} writeTag={writeTag} onNavigateMain={() => setScreen('main')} />
-  );
-
-  return (
-    <div className="min-h-screen bg-[#b6b6b6] text-[#31344a]">
-      {/* ══════ SIEMENS Header (shared across all screens) ══════ */}
-      <header className="bg-gradient-to-b from-[#003366] to-[#0a2540] h-12 flex items-center justify-between px-6 shadow-md">
-        <span className="text-white font-bold text-lg tracking-[0.2em]">SIEMENS</span>
-        <div className="flex items-center gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-green-400 shadow-[0_0_6px_#0f0]" : "bg-red-500"}`} />
-          <span className="text-white/70 text-sm font-semibold tracking-wide">SIMATIC HMI</span>
-        </div>
-      </header>
-
-      {/* Screen content */}
-      {screen === 'main' ? mainContent : warningContent}
     </div>
   );
 }
