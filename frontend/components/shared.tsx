@@ -17,7 +17,7 @@ export function StatusDot({ active, size = "w-2.5 h-2.5", color }: {
   size?: string;
   color?: string;
 }) {
-  const c = color ?? (active ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-slate-600");
+  const c = color ?? (active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-border-strong");
   return <div className={`${size} rounded-full transition-all duration-300 ${c}`} />;
 }
 

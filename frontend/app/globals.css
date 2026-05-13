@@ -1,12 +1,65 @@
 @import "tailwindcss";
 
+:root, [data-theme="dark"] {
+  --bg-main: #0a0e17;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-strong: #ffffff;
+  --bg-header: rgba(13, 17, 23, 0.9);
+  --bg-surface: rgba(17, 24, 39, 0.7);
+  --bg-surface-solid: #111827;
+  --bg-surface-hover: rgba(30, 41, 59, 0.8);
+  --border-color: rgba(30, 41, 59, 0.8);
+  --border-color-2: #334155;
+  --bg-input: rgba(15, 23, 42, 0.8);
+  --bg-badge: rgba(30, 41, 59, 0.6);
+  --bg-btn: #1e293b;
+  --bg-btn-hover: #334155;
+  --svg-chamber: #1e293b;
+  --svg-chamber-bg: #1a2332;
+  --svg-chamber-roof: #1f2d3d;
+  --svg-stroke: #334155;
+  --svg-coil-off: #475569;
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+[data-theme="light"] {
+  --bg-main: #f0f4f8;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --text-strong: #0f172a;
+  --bg-header: rgba(255, 255, 255, 0.85);
+  --bg-surface: rgba(255, 255, 255, 0.75);
+  --bg-surface-solid: #ffffff;
+  --bg-surface-hover: rgba(226, 232, 240, 0.8);
+  --border-color: rgba(203, 215, 225, 0.8);
+  --border-color-2: #94a3b8;
+  --bg-input: rgba(255, 255, 255, 0.9);
+  --bg-badge: rgba(226, 232, 240, 0.8);
+  --bg-btn: #e2e8f0;
+  --bg-btn-hover: #cbd5e1;
+  --svg-chamber: #f1f5f9;
+  --svg-chamber-bg: #e2e8f0;
+  --svg-chamber-roof: #cbd5e1;
+  --svg-stroke: #94a3b8;
+  --svg-coil-off: #94a3b8;
+  --shadow-glass: 0 8px 32px 0 rgba(30, 41, 59, 0.1);
+}
+
 @theme inline {
-  --color-background: #0a0e17;
-  --color-foreground: #e2e8f0;
-  --color-surface: #111827;
-  --color-surface-2: #1e293b;
-  --color-border: #1e293b;
-  --color-border-2: #334155;
+  --color-background: var(--bg-main);
+  --color-foreground: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-strong: var(--text-strong);
+  --color-header: var(--bg-header);
+  --color-surface: var(--bg-surface);
+  --color-surface-solid: var(--bg-surface-solid);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-border-subtle: var(--border-color);
+  --color-border-strong: var(--border-color-2);
+  --color-badge: var(--bg-badge);
+  --color-btn: var(--bg-btn);
+  --color-btn-hover: var(--bg-btn-hover);
   --color-accent: #22d3ee;
   --color-accent-2: #06b6d4;
   --color-success: #10b981;
@@ -17,9 +70,10 @@
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--bg-main);
+  color: var(--text-main);
   font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ─── Animations ─── */
@@ -85,10 +139,12 @@ body {
 
 /* ─── Glass Card ─── */
 .glass {
-  background: rgba(17, 24, 39, 0.7);
+  background: var(--bg-surface);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
+  box-shadow: var(--shadow-glass);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* ─── I/O Field ─── */
@@ -99,16 +155,16 @@ body {
   font-weight: 600;
   font-size: 15px;
   font-variant-numeric: tabular-nums;
-  background: rgba(15, 23, 42, 0.8);
-  color: #e2e8f0;
-  border: 1.5px solid #334155;
+  background: var(--bg-input);
+  color: var(--text-strong);
+  border: 1.5px solid var(--border-color-2);
   border-radius: 8px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.2s, box-shadow 0.2s;
 }
 
 .io-field:focus {
-  border-color: #22d3ee;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
 }
 
